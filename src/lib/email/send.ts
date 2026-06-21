@@ -136,3 +136,59 @@ export async function sendDailyReminderEmail(args: SendDailyReminderArgs): Promi
     return { ok: false };
   }
 }
+
+export interface SendWelcomeArgs {
+  userId: string;
+  to: string;
+  subject: string;
+  html: string;
+}
+
+/** Send a welcome email to the user, and record the attempt in EmailLogs. */
+export async function sendWelcomeEmail(args: SendWelcomeArgs): Promise<{ ok: boolean }> {
+  await connectDB();
+
+  if (useMockEmail()) {
+    // eslint-disable-next-line no-console
+    console.log(`[mock email] welcome email → ${args.to} · "${args.subject}"`);
+    await EmailLog.create({
+      userId: args.userId,
+      to: args.to,
+      type: "welcome",
+      subject: args.subject,
+      status: "sent",
+      providerId: "mock",
+    });
+    return { ok: true };
+  }
+
+  const from = process.env.RESEND_FROM_EMAIL || "DevTrack AI <onboarding@resend.dev>";
+  try {
+    const { data, error } = await resend().emails.send({
+      from,
+      to: args.to,
+      subject: args.subject,
+      html: args.html,
+    });
+    if (error) throw new Error(error.message);
+    await EmailLog.create({
+      userId: args.userId,
+      to: args.to,
+      type: "welcome",
+      subject: args.subject,
+      status: "sent",
+      providerId: data?.id ?? "",
+    });
+    return { ok: true };
+  } catch (err) {
+    await EmailLog.create({
+      userId: args.userId,
+      to: args.to,
+      type: "welcome",
+      subject: args.subject,
+      status: "failed",
+      error: err instanceof Error ? err.message : String(err),
+    });
+    return { ok: false };
+  }
+}

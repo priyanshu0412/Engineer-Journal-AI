@@ -4,7 +4,7 @@ const EmailLogSchema = new Schema(
   {
     userId: { type: String, required: true, index: true },
     to: { type: String, required: true },
-    type: { type: String, enum: ["weekly", "monthly", "daily"], required: true },
+    type: { type: String, enum: ["weekly", "monthly", "daily", "welcome"], required: true },
     subject: { type: String, default: "" },
     status: { type: String, enum: ["sent", "failed"], required: true },
     providerId: { type: String, default: "" },

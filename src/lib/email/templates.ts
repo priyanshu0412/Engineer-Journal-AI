@@ -64,3 +64,21 @@ export function dailyReminderEmailHTML(name: string, dashboardUrl: string): stri
   `;
   return shell("What did you do today?", body);
 }
+
+export function welcomeEmailHTML(name: string, dashboardUrl: string): string {
+  const body = `
+    <p style="font-size:16px;line-height:1.6;margin-top:0">Hi ${name || "there"},</p>
+    <p style="font-size:16px;line-height:1.6">Welcome to <strong>DevTrack AI</strong>! We're excited to help you track and showcase your daily engineering work.</p>
+    <p style="font-size:15px;line-height:1.6;color:#64748b">Here is a quick overview of how DevTrack AI works:</p>
+    <ul style="line-height:1.8;padding-left:20px;font-size:15px;color:#334155">
+      <li><strong>Log Daily</strong>: Write naturally in any language (English, Hindi, Hinglish, Gujarati, etc.). The AI automatically structures it, extracting tasks, achievements, challenges, and technologies.</li>
+      <li><strong>Daily Reminders</strong>: We'll send you a brief prompt at 7:00 PM IST if you haven't logged your work yet.</li>
+      <li><strong>Automated Reports</strong>: Get professional summaries emailed to you every Sunday at 10:00 AM IST and on the last day of the month.</li>
+    </ul>
+    <div style="margin:24px 0">
+      <a href="${dashboardUrl}" style="background:#2563eb;color:#fff;padding:12px 24px;border-radius:6px;text-decoration:none;font-weight:600;display:inline-block">Go to Dashboard</a>
+    </div>
+    <p style="font-size:14px;line-height:1.6;color:#94a3b8">If you have any feedback or ideas, feel free to reply directly. Happy tracking!</p>
+  `;
+  return shell("Welcome to DevTrack AI!", body);
+}
