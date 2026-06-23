@@ -22,7 +22,7 @@ function Toggle({
   onChange: (v: boolean) => void;
 }) {
   return (
-    <div className="flex items-center justify-between gap-4 rounded-lg border p-4">
+    <div className="flex items-center justify-between gap-4 rounded-lg border p-4 transition-colors hover:bg-muted/10">
       <div>
         <p className="text-sm font-medium">{label}</p>
         <p className="text-sm text-muted-foreground">{description}</p>
@@ -33,20 +33,21 @@ function Toggle({
         aria-checked={checked}
         onClick={() => onChange(!checked)}
         className={cn(
-          "relative h-6 w-11 shrink-0 rounded-full transition-colors",
-          checked ? "bg-primary" : "bg-muted-foreground/30",
+          "peer inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50",
+          checked ? "bg-primary" : "bg-muted-foreground/20 hover:bg-muted-foreground/30",
         )}
       >
         <span
           className={cn(
-            "absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform",
-            checked ? "translate-x-[22px]" : "translate-x-0.5",
+            "pointer-events-none block h-5 w-5 rounded-full bg-white shadow-lg ring-0 transition-transform duration-200 ease-in-out",
+            checked ? "translate-x-5" : "translate-x-0",
           )}
         />
       </button>
     </div>
   );
 }
+
 
 export function SettingsForm({ initial }: { initial: UserSettings }) {
   const [weekly, setWeekly] = React.useState(initial.weeklyEmails);
