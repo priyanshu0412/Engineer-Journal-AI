@@ -36,12 +36,14 @@ export async function ensureUser() {
     if (isNew && doc) {
       const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
       const welcomeHtml = welcomeEmailHTML(doc.name || "", `${appUrl}/dashboard`);
-      sendWelcomeEmail({
+      await sendWelcomeEmail({
         userId: doc.clerkId,
         to: doc.email,
         subject: "Welcome to DevTrack AI!",
         html: welcomeHtml,
-      }).catch(() => {});
+      }).catch((err) => {
+        console.error("Failed to send mock welcome email:", err);
+      });
     }
     // Demo data is seeded inside connectDB() in mock mode.
     return doc;
@@ -64,12 +66,14 @@ export async function ensureUser() {
   if (isNew && doc) {
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
     const welcomeHtml = welcomeEmailHTML(doc.name || "", `${appUrl}/dashboard`);
-    sendWelcomeEmail({
+    await sendWelcomeEmail({
       userId: doc.clerkId,
       to: doc.email,
       subject: "Welcome to DevTrack AI!",
       html: welcomeHtml,
-    }).catch(() => {});
+    }).catch((err) => {
+      console.error("Failed to send welcome email:", err);
+    });
   }
 
   return doc;
