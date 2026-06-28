@@ -42,7 +42,7 @@ export async function updateSettings(
         monthlyEmails: input.monthlyEmails,
         dailyEmails: input.dailyEmails,
         dailyEmailTime: input.dailyEmailTime || "19:00",
-        timezone: input.timezone || "Asia/Kolkata",
+        timezone: "Asia/Kolkata", // Hard-locked to India timezone
       },
     },
   );
