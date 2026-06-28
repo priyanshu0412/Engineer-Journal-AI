@@ -22,8 +22,9 @@ export async function ensureUser() {
   await connectDB();
 
   if (MOCK_MODE) {
-    const existing = await User.findOne({ clerkId: DEV_USER_ID });
-    const isNew = !existing;
+    const existing = await User.findOne({ clerkId: DEV_USER_ID }).lean();
+    if (existing) return existing;
+
     const doc = await User.findOneAndUpdate(
       { clerkId: DEV_USER_ID },
       {
@@ -33,7 +34,7 @@ export async function ensureUser() {
       { upsert: true, new: true, setDefaultsOnInsert: true },
     ).lean();
 
-    if (isNew && doc) {
+    if (doc) {
       const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
       const welcomeHtml = welcomeEmailHTML(doc.name || "", `${appUrl}/dashboard`);
       await sendWelcomeEmail({
@@ -49,13 +50,20 @@ export async function ensureUser() {
     return doc;
   }
 
+  const { userId } = await auth();
+  if (!userId) return null;
+
+  // 1. Try to find the user in our local database first (very fast Mongo query)
+  const existing = await User.findOne({ clerkId: userId }).lean();
+  if (existing) {
+    return existing; // Already synced! Instant return (no Clerk network call)
+  }
+
+  // 2. Only if they don't exist in MongoDB, fetch Clerk user details and insert
   const cu = await currentUser();
   if (!cu) return null;
   const email = cu.emailAddresses[0]?.emailAddress ?? "";
   const name = [cu.firstName, cu.lastName].filter(Boolean).join(" ");
-  
-  const existing = await User.findOne({ clerkId: cu.id });
-  const isNew = !existing;
 
   const doc = await User.findOneAndUpdate(
     { clerkId: cu.id },
@@ -63,7 +71,7 @@ export async function ensureUser() {
     { upsert: true, new: true, setDefaultsOnInsert: true },
   ).lean();
 
-  if (isNew && doc) {
+  if (doc) {
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
     const welcomeHtml = welcomeEmailHTML(doc.name || "", `${appUrl}/dashboard`);
     await sendWelcomeEmail({
