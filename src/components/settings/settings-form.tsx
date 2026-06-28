@@ -9,6 +9,28 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 import { updateSettings, type UserSettings } from "@/actions/settings";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+
+const TIME_OPTIONS = Array.from({ length: 96 }, (_, i) => {
+  const hour = Math.floor(i / 4);
+  const minute = (i % 4) * 15;
+  const hourStr = String(hour).padStart(2, "0");
+  const minuteStr = String(minute).padStart(2, "0");
+  const timeVal = `${hourStr}:${minuteStr}`;
+
+  const ampm = hour >= 12 ? "PM" : "AM";
+  const displayHour = hour % 12 === 0 ? 12 : hour % 12;
+  const displayHourStr = String(displayHour).padStart(2, "0");
+  const label = `${displayHourStr}:${minuteStr} ${ampm}`;
+
+  return { value: timeVal, label };
+});
 
 function Toggle({
   label,
@@ -53,6 +75,7 @@ export function SettingsForm({ initial }: { initial: UserSettings }) {
   const [weekly, setWeekly] = React.useState(initial.weeklyEmails);
   const [monthly, setMonthly] = React.useState(initial.monthlyEmails);
   const [daily, setDaily] = React.useState(initial.dailyEmails);
+  const [dailyTime, setDailyTime] = React.useState(initial.dailyEmailTime);
   const [tz, setTz] = React.useState(initial.timezone);
   const [pending, start] = React.useTransition();
 
@@ -63,6 +86,7 @@ export function SettingsForm({ initial }: { initial: UserSettings }) {
           weeklyEmails: weekly,
           monthlyEmails: monthly,
           dailyEmails: daily,
+          dailyEmailTime: dailyTime,
           timezone: tz,
         });
         toast.success("Settings saved.");
@@ -109,10 +133,27 @@ export function SettingsForm({ initial }: { initial: UserSettings }) {
           />
           <Toggle
             label="Daily work reminder email"
-            description="Delivered daily at 7 PM IST if you haven't logged your work yet."
+            description="Delivered daily if you haven't logged your work yet."
             checked={daily}
             onChange={setDaily}
           />
+          {daily && (
+            <div className="grid max-w-xs gap-1.5 pl-4 border-l-2 border-primary/20">
+              <Label htmlFor="dailyTime">Preferred Notification Time</Label>
+              <Select value={dailyTime} onValueChange={setDailyTime}>
+                <SelectTrigger id="dailyTime" className="w-full">
+                  <SelectValue placeholder="Select time" />
+                </SelectTrigger>
+                <SelectContent>
+                  {TIME_OPTIONS.map((opt) => (
+                    <SelectItem key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
           <div className="grid max-w-xs gap-1.5">
             <Label htmlFor="tz">Timezone</Label>
             <Input

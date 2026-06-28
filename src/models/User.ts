@@ -9,6 +9,7 @@ const UserSchema = new Schema(
     weeklyEmails: { type: Boolean, default: true },
     monthlyEmails: { type: Boolean, default: true },
     dailyEmails: { type: Boolean, default: true },
+    dailyEmailTime: { type: String, default: "19:00" },
     timezone: { type: String, default: "Asia/Kolkata" },
   },
   { timestamps: true },

@@ -10,6 +10,7 @@ export interface UserSettings {
   weeklyEmails: boolean;
   monthlyEmails: boolean;
   dailyEmails: boolean;
+  dailyEmailTime: string;
   timezone: string;
 }
 
@@ -23,12 +24,13 @@ export async function getSettings(): Promise<UserSettings> {
     weeklyEmails: doc?.weeklyEmails ?? true,
     monthlyEmails: doc?.monthlyEmails ?? true,
     dailyEmails: doc?.dailyEmails ?? true,
+    dailyEmailTime: doc?.dailyEmailTime ?? "19:00",
     timezone: doc?.timezone ?? "Asia/Kolkata",
   };
 }
 
 export async function updateSettings(
-  input: Pick<UserSettings, "weeklyEmails" | "monthlyEmails" | "dailyEmails" | "timezone">,
+  input: Pick<UserSettings, "weeklyEmails" | "monthlyEmails" | "dailyEmails" | "dailyEmailTime" | "timezone">,
 ): Promise<{ ok: true }> {
   const clerkId = await requireUserId();
   await connectDB();
@@ -39,6 +41,7 @@ export async function updateSettings(
         weeklyEmails: input.weeklyEmails,
         monthlyEmails: input.monthlyEmails,
         dailyEmails: input.dailyEmails,
+        dailyEmailTime: input.dailyEmailTime || "19:00",
         timezone: input.timezone || "Asia/Kolkata",
       },
     },

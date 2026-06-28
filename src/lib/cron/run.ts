@@ -126,12 +126,47 @@ export async function runDailyReminderForAllUsers(ref: Date = new Date()): Promi
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
   const dashboardUrl = `${appUrl}/dashboard`;
 
+  // Round ref to the nearest 15-minute interval to be resilient to small cron delay/skew
+  const roundedRef = new Date(ref);
+  const m = ref.getMinutes();
+  const remainder = m % 15;
+  if (remainder < 8) {
+    roundedRef.setMinutes(m - remainder);
+  } else {
+    roundedRef.setMinutes(m + (15 - remainder));
+  }
+  roundedRef.setSeconds(0);
+  roundedRef.setMilliseconds(0);
+
   for (const u of users) {
-    result.processed += 1;
     try {
       const tz = u.timezone || "Asia/Kolkata";
+
+      // Check if it matches this user's preferred time
+      const parts = new Intl.DateTimeFormat("en-US", {
+        timeZone: tz,
+        hour12: false,
+        hour: "numeric",
+        minute: "numeric",
+      }).formatToParts(roundedRef);
+
+      const localHour = parseInt(parts.find((p) => p.type === "hour")?.value || "0", 10) % 24;
+      const localMinute = parseInt(parts.find((p) => p.type === "minute")?.value || "0", 10);
+
+      const preferredTime = u.dailyEmailTime || "19:00";
+      const [prefHourStr, prefMinStr] = preferredTime.split(":");
+      const prefHour = parseInt(prefHourStr, 10);
+      const prefMinute = parseInt(prefMinStr, 10);
+
+      if (localHour !== prefHour || localMinute !== prefMinute) {
+        // Not the preferred time for this user - skip
+        continue;
+      }
+
+      result.processed += 1;
+
       // Get the local date string for the user's timezone: YYYY-MM-DD
-      const userDateStr = ref.toLocaleDateString("en-CA", { timeZone: tz });
+      const userDateStr = roundedRef.toLocaleDateString("en-CA", { timeZone: tz });
       const targetDate = new Date(userDateStr); // Midnight UTC of that local date
 
       // Check if entry already exists for this date
