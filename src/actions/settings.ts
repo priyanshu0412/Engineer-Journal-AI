@@ -12,6 +12,8 @@ export interface UserSettings {
   dailyEmails: boolean;
   dailyEmailTime: string;
   timezone: string;
+  githubUsername?: string;
+  githubToken?: string;
 }
 
 export async function getSettings(): Promise<UserSettings> {
@@ -26,25 +28,36 @@ export async function getSettings(): Promise<UserSettings> {
     dailyEmails: doc?.dailyEmails ?? true,
     dailyEmailTime: doc?.dailyEmailTime ?? "19:00",
     timezone: doc?.timezone ?? "Asia/Kolkata",
+    githubUsername: doc?.githubUsername ?? "",
+    githubToken: doc?.githubToken ?? "",
   };
 }
 
 export async function updateSettings(
-  input: Pick<UserSettings, "weeklyEmails" | "monthlyEmails" | "dailyEmails" | "dailyEmailTime" | "timezone">,
+  input: Partial<UserSettings> & Pick<UserSettings, "weeklyEmails" | "monthlyEmails" | "dailyEmails" | "dailyEmailTime" | "timezone">,
 ): Promise<{ ok: true }> {
   const clerkId = await requireUserId();
   await connectDB();
+  
+  const updateObj: Record<string, any> = {
+    weeklyEmails: input.weeklyEmails,
+    monthlyEmails: input.monthlyEmails,
+    dailyEmails: input.dailyEmails,
+    dailyEmailTime: input.dailyEmailTime || "19:00",
+    timezone: "Asia/Kolkata",
+  };
+  
+  if (input.githubUsername !== undefined) {
+    updateObj.githubUsername = input.githubUsername.trim();
+  }
+  if (input.githubToken !== undefined) {
+    updateObj.githubToken = input.githubToken.trim();
+  }
+
   await User.updateOne(
     { clerkId },
-    {
-      $set: {
-        weeklyEmails: input.weeklyEmails,
-        monthlyEmails: input.monthlyEmails,
-        dailyEmails: input.dailyEmails,
-        dailyEmailTime: input.dailyEmailTime || "19:00",
-        timezone: "Asia/Kolkata", // Hard-locked to India timezone
-      },
-    },
+    { $set: updateObj },
   );
   return { ok: true };
 }
+

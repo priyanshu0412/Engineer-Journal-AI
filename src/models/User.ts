@@ -11,6 +11,8 @@ const UserSchema = new Schema(
     dailyEmails: { type: Boolean, default: true },
     dailyEmailTime: { type: String, default: "19:00" },
     timezone: { type: String, default: "Asia/Kolkata" },
+    githubUsername: { type: String, default: "" },
+    githubToken: { type: String, default: "" },
   },
   { timestamps: true },
 );

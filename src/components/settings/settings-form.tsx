@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Check, Loader2, User, Mail, Globe, Lock, Clock, Calendar, Bell, ShieldAlert } from "lucide-react";
+import { Check, Loader2, User, Mail, Globe, Lock, Clock, Calendar, Bell, ShieldAlert, Github } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -97,6 +97,9 @@ export function SettingsForm({ initial }: { initial: UserSettings }) {
   const [monthly, setMonthly] = React.useState(initial.monthlyEmails);
   const [daily, setDaily] = React.useState(initial.dailyEmails);
 
+  const [githubUsername, setGithubUsername] = React.useState(initial.githubUsername ?? "");
+  const [githubToken, setGithubToken] = React.useState(initial.githubToken ?? "");
+
   // Split dailyEmailTime for 12-hour dropdown states
   const timeParts = parse24to12(initial.dailyEmailTime);
   const [hour12, setHour12] = React.useState(timeParts.hour);
@@ -115,6 +118,8 @@ export function SettingsForm({ initial }: { initial: UserSettings }) {
           dailyEmails: daily,
           dailyEmailTime: dailyTime24,
           timezone: "Asia/Kolkata", // Hard-locked timezone
+          githubUsername,
+          githubToken,
         });
         toast.success("Settings saved successfully.");
       } catch (e) {
@@ -275,6 +280,48 @@ export function SettingsForm({ initial }: { initial: UserSettings }) {
               </div>
             </div>
           )}
+        </CardContent>
+      </Card>
+
+      {/* GitHub Integration Card */}
+      <Card className="overflow-hidden border-muted-foreground/10 shadow-sm animate-fade-in">
+        <CardHeader className="bg-muted/10 pb-4 border-b border-muted-foreground/5">
+          <CardTitle className="text-base font-semibold flex items-center gap-2">
+            <Github className="h-4.5 w-4.5 text-primary" /> GitHub integration
+          </CardTitle>
+          <CardDescription>Configure your credentials to fetch commits, issues, and PR logs for your daily entries.</CardDescription>
+        </CardHeader>
+        <CardContent className="pt-5 space-y-4">
+          <div className="grid gap-5 sm:grid-cols-2">
+            <div className="grid gap-1.5">
+              <Label htmlFor="gitUsername" className="text-xs font-semibold text-muted-foreground">GitHub Username</Label>
+              <Input
+                id="gitUsername"
+                value={githubUsername}
+                onChange={(e) => setGithubUsername(e.target.value)}
+                placeholder="e.g. priyanshu0412"
+                className="bg-background border-muted-foreground/10 focus:border-primary/50 transition-colors"
+              />
+            </div>
+            <div className="grid gap-1.5">
+              <Label htmlFor="gitToken" className="text-xs font-semibold text-muted-foreground">Personal Access Token (PAT)</Label>
+              <Input
+                id="gitToken"
+                type="password"
+                value={githubToken}
+                onChange={(e) => setGithubToken(e.target.value)}
+                placeholder="ghp_xxxxxxxxxxxxxxxxxxxx"
+                className="bg-background border-muted-foreground/10 focus:border-primary/50 transition-colors font-mono"
+              />
+            </div>
+          </div>
+
+          <div className="flex gap-2.5 items-start bg-blue-500/5 text-blue-500 rounded-xl p-4 border border-blue-500/10 text-xs">
+            <Globe className="h-4 w-4 shrink-0 mt-0.5" />
+            <p className="leading-normal">
+              <strong>How to get a Token:</strong> Go to your GitHub account <em>Settings → Developer Settings → Personal Access Tokens → Tokens (classic)</em>, click <strong>Generate new token</strong>, and select the <strong><code>repo</code></strong> and <strong><code>read:user</code></strong> scopes. Copy the token key here.
+            </p>
+          </div>
         </CardContent>
       </Card>
 
