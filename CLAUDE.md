@@ -1,6 +1,6 @@
-# DevTrack AI — Project Guide for Claude
+# DevTrack AI — Project Guide for Developer
 
-AI-powered developer work journal. Users log work in any language; Claude translates/rewrites it professionally and builds weekly/monthly/yearly reports with PDF/Excel/CSV/Markdown export and automated email delivery.
+AI-powered developer work journal. Users log work in any language; the AI translates/rewrites it professionally and builds weekly/monthly/yearly reports with PDF/Excel/CSV/Markdown export and automated email delivery.
 
 ## Stack
 - Next.js 15 (App Router, RSC, Server Actions) · TypeScript · Tailwind v3 · shadcn-style UI

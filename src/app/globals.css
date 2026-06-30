@@ -58,3 +58,71 @@
     font-feature-settings: "rlig" 1, "calt" 1;
   }
 }
+
+@layer utilities {
+  .bg-grid-pattern {
+    background-size: 50px 50px;
+    background-image: 
+      linear-gradient(to right, hsl(var(--border) / 0.4) 1px, transparent 1px),
+      linear-gradient(to bottom, hsl(var(--border) / 0.4) 1px, transparent 1px);
+  }
+  .bg-dot-pattern {
+    background-size: 24px 24px;
+    background-image: radial-gradient(circle, hsl(var(--border) / 0.8) 1px, transparent 1px);
+  }
+  .bg-radial-gradient {
+    background: radial-gradient(circle at 50% 50%, hsl(var(--primary) / 0.15), transparent 60%);
+  }
+  .bg-radial-glow {
+    background: radial-gradient(circle at 50% 30%, hsl(var(--primary) / 0.12) 0%, transparent 60%);
+  }
+  .bg-radial-glow-secondary {
+    background: radial-gradient(circle at 80% 50%, hsl(var(--primary) / 0.08) 0%, transparent 50%);
+  }
+  
+  @keyframes float {
+    0%, 100% {
+      transform: translateY(0px) rotate(0deg);
+    }
+    50% {
+      transform: translateY(-8px) rotate(1deg);
+    }
+  }
+  
+  @keyframes float-slow {
+    0%, 100% {
+      transform: translateY(0px) rotate(0deg);
+    }
+    50% {
+      transform: translateY(-12px) rotate(-1deg);
+    }
+  }
+
+  @keyframes pulse-slow {
+    0%, 100% {
+      opacity: 0.3;
+      transform: scale(1);
+    }
+    50% {
+      opacity: 0.6;
+      transform: scale(1.08);
+    }
+  }
+
+  .animate-float {
+    animation: float 6s ease-in-out infinite;
+  }
+  
+  .animate-float-slow {
+    animation: float-slow 9s ease-in-out infinite;
+  }
+
+  .animate-float-delayed {
+    animation: float 7s ease-in-out infinite 1.5s;
+  }
+
+  .animate-pulse-slow {
+    animation: pulse-slow 8s ease-in-out infinite;
+  }
+}
+

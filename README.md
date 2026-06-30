@@ -1,8 +1,8 @@
 # DevTrack AI — Developer Work Journal
 
-Log your daily engineering work in **any language** (English, Hindi, Gujarati, Hinglish, or a mix). Claude detects the language, rewrites it into professional English, extracts tasks / learnings / challenges / technologies, and builds **weekly, monthly, and yearly reports** you can export and have emailed automatically.
+Log your daily engineering work in **any language** (English, Hindi, Gujarati, Hinglish, or a mix). AI detects the language, rewrites it into professional English, extracts tasks / learnings / challenges / technologies, and builds **weekly, monthly, and yearly reports** you can export and have emailed automatically.
 
-Built with **Next.js 15 · TypeScript · Tailwind CSS · shadcn-style UI · MongoDB Atlas · Clerk · Claude (Anthropic) · Resend · Vercel**.
+Built with **Next.js 15 · TypeScript · Tailwind CSS · shadcn-style UI · MongoDB Atlas · Clerk · Anthropic & Gemini AI · Resend · Vercel**.
 
 ---
 
@@ -51,7 +51,7 @@ The app degrades gracefully when keys are missing — pages render a friendly "c
 You type (any language)
         │
         ▼
- Claude structured output  ──►  { summary, tasks, achievements, learnings, challenges, technologies, languages }
+   AI structured output    ──►  { summary, tasks, achievements, learnings, challenges, technologies, languages }
         │
         ▼
    JournalEntry (MongoDB)
@@ -61,8 +61,8 @@ You type (any language)
         └─►  Analytics       (projects, tech, trends)
 ```
 
-- **AI layer** — `src/lib/ai/` uses the Anthropic SDK with `messages.parse()` + Zod schemas (`zodOutputFormat`) so every result matches our type, with adaptive thinking enabled.
-- **Reports** — `src/lib/reports/build.ts` combines a week/month of entries and asks Claude for a manager- and appraisal-ready summary.
+- **AI layer** — `src/lib/ai/` uses LLM providers with `messages.parse()` + Zod schemas (`zodOutputFormat`) so every result matches our type, with structured parsing enabled.
+- **Reports** — `src/lib/reports/build.ts` combines a week/month of entries and asks AI for a manager- and appraisal-ready summary.
 - **Exports** — `src/app/api/export/*` stream PDF (`@react-pdf/renderer`), Excel (`exceljs`, 4 sheets), CSV, and Markdown.
 - **Email** — `src/lib/email/` sends reports through Resend and logs every send to the `EmailLogs` collection.
 
