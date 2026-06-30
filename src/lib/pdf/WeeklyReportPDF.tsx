@@ -9,23 +9,32 @@ import {
 } from "@react-pdf/renderer";
 import { createElement } from "react";
 import { formatReportDate } from "@/lib/utils";
-import type { MonthlyReportDTO, WeeklyReportDTO } from "@/types";
+import type { JournalEntryDTO, MonthlyReportDTO, WeeklyReportDTO } from "@/types";
 
 const styles = StyleSheet.create({
   page: { padding: 36, fontSize: 9, fontFamily: "Helvetica", color: "#0f172a" },
   h1: { fontSize: 18, fontFamily: "Helvetica-Bold", marginBottom: 2 },
   sub: { fontSize: 10, color: "#64748b", marginBottom: 14 },
   h2: { fontSize: 12, fontFamily: "Helvetica-Bold", marginTop: 14, marginBottom: 6 },
-  row: { flexDirection: "row", borderBottom: "1px solid #e2e8f0" },
-  headRow: { flexDirection: "row", backgroundColor: "#1e293b" },
-  th: { color: "#fff", fontFamily: "Helvetica-Bold", padding: 4, fontSize: 8 },
-  td: { padding: 4, fontSize: 8 },
+  row: { flexDirection: "row", borderBottom: "1px solid #e2e8f0", minHeight: 22 },
+  headRow: { flexDirection: "row", backgroundColor: "#1e293b", minHeight: 22 },
+  th: { color: "#fff", fontFamily: "Helvetica-Bold", padding: 6, fontSize: 8 },
+  td: { padding: 6, fontSize: 8, lineHeight: 1.3 },
   cDate: { width: "12%" },
   cDay: { width: "10%" },
   cProj: { width: "16%" },
   cTask: { width: "26%" },
   cChal: { width: "18%" },
   cLearn: { width: "18%" },
+  
+  // Custom widths for Journal PDF Export
+  cDateJ: { width: "10%" },
+  cProjJ: { width: "14%" },
+  cSumJ: { width: "30%" },
+  cTaskJ: { width: "22%" },
+  cChalLearnJ: { width: "14%" },
+  cTechJ: { width: "10%" },
+
   label: { fontFamily: "Helvetica-Bold", marginTop: 4 },
   para: { marginTop: 2, lineHeight: 1.4 },
 });
@@ -34,9 +43,16 @@ function SummaryBlock({ title, items }: { title: string; items: string[] }) {
   if (!items.length) return null;
   return createElement(
     View,
-    { style: { marginBottom: 4 } },
+    { style: { marginBottom: 6 } },
     createElement(Text, { style: styles.label }, title),
-    createElement(Text, { style: styles.para }, items.join(" • ")),
+    ...items.map((item) => 
+      createElement(
+        View,
+        { style: { flexDirection: "row", marginTop: 2, paddingLeft: 8 } },
+        createElement(Text, { style: { marginRight: 4, color: "#2563eb", fontFamily: "Helvetica-Bold" } }, "•"),
+        createElement(Text, { style: { flex: 1, lineHeight: 1.3 } }, item)
+      )
+    )
   );
 }
 
@@ -70,9 +86,9 @@ export function buildWeeklyPDF(wr: WeeklyReportDTO): Promise<Buffer> {
           createElement(Text, { style: [styles.td, styles.cDate] }, formatReportDate(r.date)),
           createElement(Text, { style: [styles.td, styles.cDay] }, r.day),
           createElement(Text, { style: [styles.td, styles.cProj] }, r.project),
-          createElement(Text, { style: [styles.td, styles.cTask] }, r.tasksCompleted.join("; ")),
-          createElement(Text, { style: [styles.td, styles.cChal] }, r.challenges.join("; ")),
-          createElement(Text, { style: [styles.td, styles.cLearn] }, r.learnings.join("; ")),
+          createElement(Text, { style: [styles.td, styles.cTask] }, r.tasksCompleted.map(t => `• ${t}`).join("\n") || "—"),
+          createElement(Text, { style: [styles.td, styles.cChal] }, r.challenges.map(c => `• ${c}`).join("\n") || "—"),
+          createElement(Text, { style: [styles.td, styles.cLearn] }, r.learnings.map(l => `• ${l}`).join("\n") || "—"),
         ),
       ),
       createElement(Text, { style: styles.h2 }, "Weekly Summary"),
@@ -131,3 +147,45 @@ export function buildMonthlyPDF(mr: MonthlyReportDTO): Promise<Buffer> {
   );
   return renderToBuffer(doc);
 }
+
+export function buildJournalPDF(entries: JournalEntryDTO[], description: string): Promise<Buffer> {
+  const doc = createElement(
+    Document,
+    {},
+    createElement(
+      Page,
+      { size: "A4", style: styles.page, orientation: "landscape" },
+      createElement(Text, { style: styles.h1 }, "DevTrack AI — Exported Journal Logs"),
+      createElement(Text, { style: styles.sub }, description || `Total ${entries.length} logs exported.`),
+      createElement(
+        View,
+        { style: styles.headRow },
+        createElement(Text, { style: [styles.th, styles.cDateJ] }, "Date"),
+        createElement(Text, { style: [styles.th, styles.cProjJ] }, "Project"),
+        createElement(Text, { style: [styles.th, styles.cSumJ] }, "AI Polished Summary"),
+        createElement(Text, { style: [styles.th, styles.cTaskJ] }, "Tasks Completed"),
+        createElement(Text, { style: [styles.th, styles.cChalLearnJ] }, "Challenges & Learnings"),
+        createElement(Text, { style: [styles.th, styles.cTechJ] }, "Technologies"),
+      ),
+      ...entries.map((e, i) => {
+        const tasksText = e.ai.tasks.map(t => `• ${t}`).join("\n");
+        const chalText = e.ai.challenges.length > 0 ? e.ai.challenges.map(c => `[Blocker] ${c}`).join("\n") : "";
+        const learnText = e.ai.learnings.length > 0 ? e.ai.learnings.map(l => `[Learning] ${l}`).join("\n") : "";
+        const chalLearnText = [chalText, learnText].filter(Boolean).join("\n");
+        
+        return createElement(
+          View,
+          { style: styles.row, key: i },
+          createElement(Text, { style: [styles.td, styles.cDateJ] }, formatReportDate(e.date)),
+          createElement(Text, { style: [styles.td, styles.cProjJ] }, e.projectName),
+          createElement(Text, { style: [styles.td, styles.cSumJ] }, e.ai.professionalSummary || "—"),
+          createElement(Text, { style: [styles.td, styles.cTaskJ] }, tasksText || "—"),
+          createElement(Text, { style: [styles.td, styles.cChalLearnJ] }, chalLearnText || "—"),
+          createElement(Text, { style: [styles.td, styles.cTechJ] }, e.ai.technologies.join(", ") || "—"),
+        );
+      }),
+    ),
+  );
+  return renderToBuffer(doc);
+}
+

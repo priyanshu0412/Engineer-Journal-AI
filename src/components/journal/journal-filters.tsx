@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { Search, X } from "lucide-react";
+import { Search, X, Download, FileText, FileSpreadsheet, FileCode } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import {
@@ -13,6 +13,14 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+} from "@/components/ui/dropdown-menu";
 
 const ALL = "__all__";
 
@@ -46,6 +54,12 @@ export function JournalFilters({ projects }: { projects: string[] }) {
 
   const hasFilters =
     params.get("search") || params.get("project") || params.get("from") || params.get("to");
+
+  function handleExport(format: string) {
+    const sp = new URLSearchParams(params.toString());
+    sp.set("format", format);
+    window.location.href = `/api/export/journal?${sp.toString()}`;
+  }
 
   return (
     <div className="flex flex-wrap items-end gap-3 rounded-lg border bg-card p-3">
@@ -104,18 +118,42 @@ export function JournalFilters({ projects }: { projects: string[] }) {
         />
       </div>
 
-      {hasFilters && (
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => {
-            setSearch("");
-            router.push(pathname);
-          }}
-        >
-          <X className="h-4 w-4" /> Clear
-        </Button>
-      )}
+      <div className="flex items-center gap-2">
+        {hasFilters && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => {
+              setSearch("");
+              router.push(pathname);
+            }}
+            className="h-9 px-3"
+          >
+            <X className="h-4 w-4" /> Clear
+          </Button>
+        )}
+        
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="outline" size="sm" className="h-9 px-3 gap-1.5 border-muted-foreground/10 hover:border-primary/30 transition-all duration-300">
+              <Download className="h-4 w-4 text-muted-foreground" /> Export logs
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-48 border-muted-foreground/10 bg-popover text-popover-foreground">
+            <DropdownMenuLabel className="text-xs text-muted-foreground">Choose format</DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={() => handleExport("pdf")} className="gap-2.5">
+              <FileText className="h-4 w-4 text-rose-500" /> Export to PDF
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => handleExport("xlsx")} className="gap-2.5">
+              <FileSpreadsheet className="h-4 w-4 text-emerald-500" /> Export to Excel
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => handleExport("csv")} className="gap-2.5">
+              <FileCode className="h-4 w-4 text-blue-500" /> Export to CSV
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
     </div>
   );
 }
