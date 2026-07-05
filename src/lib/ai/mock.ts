@@ -1,6 +1,6 @@
 import type { AIProcessedEntry, ReportSummary } from "@/types";
 import { uniqueStrings } from "@/lib/utils";
-import type { RawEntryInput } from "./claude";
+import type { RawEntryInput } from "./index";
 
 /** Known technology keywords to detect in raw notes (case-insensitive). */
 const TECH_KEYWORDS: Record<string, string> = {

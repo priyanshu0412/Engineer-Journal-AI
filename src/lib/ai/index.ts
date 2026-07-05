@@ -1,8 +1,7 @@
 import "server-only";
-import Anthropic from "@anthropic-ai/sdk";
 import type { z } from "zod";
 import type { AIProcessedEntry, ReportSummary } from "@/types";
-import { aiProvider, useMockAI } from "@/lib/config";
+import { useMockAI } from "@/lib/config";
 import {
   ENTRY_SYSTEM_PROMPT,
   MONTHLY_SYSTEM_PROMPT,
@@ -17,26 +16,13 @@ import { mockMonthlyAnalysis, mockProcessEntry, mockWeeklySummary } from "./mock
 import { geminiExtract } from "./gemini";
 import { emptySummary } from "@/lib/reports/empty";
 
-const MODEL = process.env.ANTHROPIC_MODEL || "claude-opus-4-8";
-
-let _client: Anthropic | null = null;
-function client(): Anthropic {
-  if (!process.env.ANTHROPIC_API_KEY) {
-    throw new Error("ANTHROPIC_API_KEY is not set. Add it to .env.local.");
-  }
-  _client ??= new Anthropic();
-  return _client;
-}
-
 const stringArray = (description: string) => ({
   type: "array" as const,
   items: { type: "string" as const },
   description,
 });
 
-// JSON Schemas for the forced-tool extraction. Forcing a single tool guarantees
-// Claude returns a structured object matching this shape (works on every SDK
-// version, unlike the newer output_config.format helper).
+// JSON Schemas for the forced-tool extraction. Reused by Gemini for structured JSON outputs.
 const ENTRY_SCHEMA = {
   type: "object" as const,
   properties: {
@@ -90,52 +76,6 @@ const MONTHLY_SCHEMA = {
   required: [...SUMMARY_REQUIRED, "aiPerformanceAnalysis"],
 };
 
-/**
- * Run a forced-tool extraction and validate the result against a Zod schema.
- * Returns the validated object, or `null` if the model produced nothing usable.
- */
-async function extract<S extends z.ZodTypeAny>(opts: {
-  system: string;
-  userContent: string;
-  toolName: string;
-  toolDescription: string;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  inputSchema: any;
-  schema: S;
-  maxTokens?: number;
-}): Promise<z.infer<S> | null> {
-  // Route to Gemini (free tier) when selected; falls back to Claude otherwise.
-  if (aiProvider() === "gemini") {
-    return geminiExtract({
-      system: opts.system,
-      userContent: opts.userContent,
-      inputSchema: opts.inputSchema,
-      schema: opts.schema,
-      maxTokens: opts.maxTokens,
-    });
-  }
-
-  const msg = await client().messages.create({
-    model: MODEL,
-    max_tokens: opts.maxTokens ?? 4096,
-    system: opts.system,
-    tools: [
-      {
-        name: opts.toolName,
-        description: opts.toolDescription,
-        input_schema: opts.inputSchema,
-      },
-    ],
-    tool_choice: { type: "tool", name: opts.toolName },
-    messages: [{ role: "user", content: opts.userContent }],
-  });
-
-  const block = msg.content.find((b) => b.type === "tool_use");
-  if (!block || block.type !== "tool_use") return null;
-  const parsed = opts.schema.safeParse(block.input);
-  return parsed.success ? parsed.data : null;
-}
-
 export interface RawEntryInput {
   date: string;
   projectName: string;
@@ -160,11 +100,9 @@ export async function processJournalEntry(input: RawEntryInput): Promise<AIProce
     .filter(Boolean)
     .join("\n");
 
-  const result = await extract({
+  const result = await geminiExtract({
     system: ENTRY_SYSTEM_PROMPT,
     userContent,
-    toolName: "record_journal_entry",
-    toolDescription: "Record the structured, professionalized version of the developer's note.",
     inputSchema: ENTRY_SCHEMA,
     schema: processedEntrySchema,
   });
@@ -190,11 +128,9 @@ export async function generateWeeklySummary(
 ): Promise<ReportSummary> {
   if (useMockAI()) return mockWeeklySummary(entries);
 
-  const result = await extract({
+  const result = await geminiExtract({
     system: WEEKLY_SYSTEM_PROMPT,
     userContent: `Here are this week's entries as JSON:\n${JSON.stringify(entries, null, 2)}`,
-    toolName: "record_weekly_summary",
-    toolDescription: "Record the aggregated weekly report summary.",
     inputSchema: WEEKLY_SCHEMA,
     schema: reportSummarySchema,
   });
@@ -207,11 +143,9 @@ export async function generateMonthlyAnalysis(
 ): Promise<ReportSummary & { aiPerformanceAnalysis: string }> {
   if (useMockAI()) return mockMonthlyAnalysis(entries);
 
-  const result = await extract({
+  const result = await geminiExtract({
     system: MONTHLY_SYSTEM_PROMPT,
     userContent: `Here are this month's entries as JSON:\n${JSON.stringify(entries, null, 2)}`,
-    toolName: "record_monthly_report",
-    toolDescription: "Record the aggregated monthly report and performance analysis.",
     inputSchema: MONTHLY_SCHEMA,
     schema: monthlyAnalysisSchema,
     maxTokens: 6000,

@@ -3,7 +3,7 @@ import { connectDB } from "@/lib/mongodb/connect";
 import { JournalEntry } from "@/models/JournalEntry";
 import { WeeklyReport } from "@/models/WeeklyReport";
 import { MonthlyReport } from "@/models/MonthlyReport";
-import { generateMonthlyAnalysis, generateWeeklySummary } from "@/lib/ai/claude";
+import { generateMonthlyAnalysis, generateWeeklySummary } from "@/lib/ai";
 import { getISOWeek, getMonthRange, getWeekRange, weekdayName } from "@/lib/utils";
 import { serializeMonthly, serializeWeekly } from "@/lib/serialize";
 import { emptySummary } from "@/lib/reports/empty";

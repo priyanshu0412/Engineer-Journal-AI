@@ -18,19 +18,14 @@ export const DEV_USER_ID = "dev-user";
 export const DEV_USER_EMAIL = "dev@devtrack.local";
 export const DEV_USER_NAME = "Dev User";
 
-/** Which AI provider to call. "gemini" uses Google's free tier; default "claude". */
-export function aiProvider(): "gemini" | "claude" {
-  return (process.env.AI_PROVIDER || "claude").toLowerCase() === "gemini"
-    ? "gemini"
-    : "claude";
+/** Which AI provider to call. Always "gemini" (Google) since Claude was removed. */
+export function aiProvider(): "gemini" {
+  return "gemini";
 }
 
 /** Use mock AI in mock mode or when the selected provider's key is missing. */
 export function useMockAI(): boolean {
-  if (MOCK_MODE) return true;
-  return aiProvider() === "gemini"
-    ? !process.env.GEMINI_API_KEY
-    : !process.env.ANTHROPIC_API_KEY;
+  return MOCK_MODE || !process.env.GEMINI_API_KEY;
 }
 
 /** Use mock email when in mock mode or when no Resend key is configured. */

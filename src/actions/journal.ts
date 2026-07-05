@@ -3,7 +3,7 @@
 import { requireUserId } from "@/lib/auth";
 import { connectDB } from "@/lib/mongodb/connect";
 import { JournalEntry } from "@/models/JournalEntry";
-import { processJournalEntry } from "@/lib/ai/claude";
+import { processJournalEntry } from "@/lib/ai";
 import { serializeEntry } from "@/lib/serialize";
 import type { JournalEntryDTO } from "@/types";
 
