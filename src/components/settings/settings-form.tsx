@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Check, Loader2, User, Mail, Globe, Lock, Clock, Calendar, Bell, ShieldAlert, Github } from "lucide-react";
+import { Check, Loader2, User, Mail, Globe, Lock, Clock, Calendar, Bell, ShieldAlert, Github, Eye, EyeOff, RefreshCw, CheckSquare, Square } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 import { updateSettings, type UserSettings } from "@/actions/settings";
+import { verifyAndFetchRepos, type GithubRepo } from "@/actions/github";
 import {
   Select,
   SelectContent,
@@ -99,6 +100,13 @@ export function SettingsForm({ initial }: { initial: UserSettings }) {
 
   const [githubUsername, setGithubUsername] = React.useState(initial.githubUsername ?? "");
   const [githubToken, setGithubToken] = React.useState(initial.githubToken ?? "");
+  const [showToken, setShowToken] = React.useState(false);
+
+  // Repo selection state
+  const [availableRepos, setAvailableRepos] = React.useState<GithubRepo[]>([]);
+  const [selectedRepos, setSelectedRepos] = React.useState<string[]>(initial.githubSelectedRepos ?? []);
+  const [isVerifying, setIsVerifying] = React.useState(false);
+  const [reposLoaded, setReposLoaded] = React.useState(false);
 
   // Split dailyEmailTime for 12-hour dropdown states
   const timeParts = parse24to12(initial.dailyEmailTime);
@@ -107,6 +115,34 @@ export function SettingsForm({ initial }: { initial: UserSettings }) {
   const [period, setPeriod] = React.useState(timeParts.period);
 
   const [pending, start] = React.useTransition();
+
+  async function handleVerifyRepos() {
+    if (!githubUsername.trim() || !githubToken.trim()) {
+      toast.error("Please enter both GitHub username and token first.");
+      return;
+    }
+    setIsVerifying(true);
+    try {
+      const result = await verifyAndFetchRepos(githubUsername.trim(), githubToken.trim());
+      if (!result.ok) {
+        toast.error(result.error);
+        return;
+      }
+      setAvailableRepos(result.repos);
+      setReposLoaded(true);
+      // Keep only previously-saved repos that still exist in the fetched list
+      setSelectedRepos((prev) => prev.filter((r) => result.repos.some((repo) => repo.fullName === r)));
+      toast.success(`✅ Connected! Found ${result.repos.length} repos.`);
+    } finally {
+      setIsVerifying(false);
+    }
+  }
+
+  function toggleRepo(fullName: string) {
+    setSelectedRepos((prev) =>
+      prev.includes(fullName) ? prev.filter((r) => r !== fullName) : [...prev, fullName]
+    );
+  }
 
   function save() {
     start(async () => {
@@ -117,9 +153,10 @@ export function SettingsForm({ initial }: { initial: UserSettings }) {
           monthlyEmails: monthly,
           dailyEmails: daily,
           dailyEmailTime: dailyTime24,
-          timezone: "Asia/Kolkata", // Hard-locked timezone
+          timezone: "Asia/Kolkata",
           githubUsername,
           githubToken,
+          githubSelectedRepos: selectedRepos,
         });
         toast.success("Settings saved successfully.");
       } catch (e) {
@@ -127,6 +164,7 @@ export function SettingsForm({ initial }: { initial: UserSettings }) {
       }
     });
   }
+
 
   return (
     <div className="space-y-6">
@@ -289,9 +327,11 @@ export function SettingsForm({ initial }: { initial: UserSettings }) {
           <CardTitle className="text-base font-semibold flex items-center gap-2">
             <Github className="h-4.5 w-4.5 text-primary" /> GitHub integration
           </CardTitle>
-          <CardDescription>Configure your credentials to fetch commits, issues, and PR logs for your daily entries.</CardDescription>
+          <CardDescription>Connect your GitHub account to auto-fill commits and PRs into your daily journal entries.</CardDescription>
         </CardHeader>
         <CardContent className="pt-5 space-y-4">
+
+          {/* Username + Token inputs */}
           <div className="grid gap-5 sm:grid-cols-2">
             <div className="grid gap-1.5">
               <Label htmlFor="gitUsername" className="text-xs font-semibold text-muted-foreground">GitHub Username</Label>
@@ -305,25 +345,103 @@ export function SettingsForm({ initial }: { initial: UserSettings }) {
             </div>
             <div className="grid gap-1.5">
               <Label htmlFor="gitToken" className="text-xs font-semibold text-muted-foreground">Personal Access Token (PAT)</Label>
-              <Input
-                id="gitToken"
-                type="password"
-                value={githubToken}
-                onChange={(e) => setGithubToken(e.target.value)}
-                placeholder="ghp_xxxxxxxxxxxxxxxxxxxx"
-                className="bg-background border-muted-foreground/10 focus:border-primary/50 transition-colors font-mono"
-              />
+              <div className="relative">
+                <Input
+                  id="gitToken"
+                  type={showToken ? "text" : "password"}
+                  value={githubToken}
+                  onChange={(e) => setGithubToken(e.target.value)}
+                  placeholder="ghp_xxxxxxxxxxxxxxxxxxxx"
+                  className="bg-background border-muted-foreground/10 focus:border-primary/50 transition-colors font-mono pr-9"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowToken((v) => !v)}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                  aria-label={showToken ? "Hide token" : "Show token"}
+                >
+                  {showToken ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </div>
             </div>
           </div>
 
+          {/* How to get token info */}
           <div className="flex gap-2.5 items-start bg-blue-500/5 text-blue-500 rounded-xl p-4 border border-blue-500/10 text-xs">
             <Globe className="h-4 w-4 shrink-0 mt-0.5" />
             <p className="leading-normal">
-              <strong>How to get a Token:</strong> Go to your GitHub account <em>Settings → Developer Settings → Personal Access Tokens → Tokens (classic)</em>, click <strong>Generate new token</strong>, and select the <strong><code>repo</code></strong> and <strong><code>read:user</code></strong> scopes. Copy the token key here.
+              <strong>How to get a Token:</strong> Go to <em>GitHub → Settings → Developer Settings → Personal Access Tokens → Tokens (classic)</em>, click <strong>Generate new token</strong>, and select the <strong><code>repo</code></strong> and <strong><code>read:user</code></strong> scopes.
             </p>
           </div>
+
+          {/* Verify button */}
+          <Button
+            type="button"
+            variant="outline"
+            onClick={handleVerifyRepos}
+            disabled={isVerifying || !githubUsername.trim() || !githubToken.trim()}
+            className="w-full border-primary/30 hover:border-primary/60 hover:bg-primary/5 transition-all"
+          >
+            {isVerifying ? (
+              <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Verifying &amp; loading repos...</>
+            ) : (
+              <><RefreshCw className="mr-2 h-4 w-4" /> Verify Token &amp; Load Repos</>
+            )}
+          </Button>
+
+          {/* Repo selection checkboxes — shown after verify */}
+          {reposLoaded && availableRepos.length > 0 && (
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <Label className="text-xs font-semibold text-muted-foreground">SELECT REPOS TO TRACK</Label>
+                <span className="text-xs bg-primary/10 text-primary font-semibold rounded-full px-2 py-0.5">
+                  {selectedRepos.length} tracked
+                </span>
+              </div>
+              <div className="max-h-52 overflow-y-auto rounded-xl border border-muted-foreground/10 divide-y divide-muted-foreground/5">
+                {availableRepos.map((repo) => {
+                  const isSelected = selectedRepos.includes(repo.fullName);
+                  return (
+                    <button
+                      key={repo.fullName}
+                      type="button"
+                      onClick={() => toggleRepo(repo.fullName)}
+                      className={cn(
+                        "w-full flex items-center gap-3 px-4 py-2.5 text-sm text-left transition-colors hover:bg-muted/30",
+                        isSelected && "bg-primary/5"
+                      )}
+                    >
+                      {isSelected
+                        ? <CheckSquare className="h-4 w-4 shrink-0 text-primary" />
+                        : <Square className="h-4 w-4 shrink-0 text-muted-foreground/40" />
+                      }
+                      <span className={cn("flex-1 font-mono text-xs truncate", isSelected ? "text-primary font-semibold" : "text-muted-foreground")}>
+                        {repo.name}
+                      </span>
+                      {repo.private && (
+                        <span className="text-[10px] bg-amber-500/10 text-amber-500 px-1.5 py-0.5 rounded font-medium">private</span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Already saved repos shown on load (before verify is clicked) */}
+          {!reposLoaded && selectedRepos.length > 0 && (
+            <div className="flex items-center gap-2 text-xs text-muted-foreground bg-primary/5 rounded-xl px-4 py-3 border border-primary/10">
+              <CheckSquare className="h-4 w-4 text-primary shrink-0" />
+              <span>
+                <span className="font-semibold text-primary">{selectedRepos.length} repo{selectedRepos.length !== 1 ? "s" : ""} tracked</span>
+                {" — click \"Verify Token & Load Repos\" to edit your selection"}
+              </span>
+            </div>
+          )}
+
         </CardContent>
       </Card>
+
 
       {/* Save Button */}
       <div className="flex items-center justify-end">

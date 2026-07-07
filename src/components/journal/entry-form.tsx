@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
-import { Loader2, Plus, Sparkles, Mic, MicOff, Github } from "lucide-react";
+import { Loader2, Plus, Sparkles, Mic, MicOff, Github, ChevronDown, GitBranch } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
@@ -14,11 +14,20 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { createEntry, updateEntry, type EntryInput } from "@/actions/journal";
-import { transcribeAudio, fetchGithubActivity } from "@/actions/integrations";
+import { transcribeAudio } from "@/actions/integrations";
+import { getTrackedRepos, fetchActivityForRepo } from "@/actions/github";
 import { toDateInputValue, cn } from "@/lib/utils";
 import type { JournalEntryDTO } from "@/types";
 
@@ -43,8 +52,23 @@ export function EntryForm({ entry, trigger }: Props) {
 
   const [isRecording, setIsRecording] = React.useState(false);
   const [isFetchingGit, setIsFetchingGit] = React.useState(false);
+  const [trackedRepos, setTrackedRepos] = React.useState<string[]>([]);
+  const [reposLoaded, setReposLoaded] = React.useState(false);
   const mediaRecorderRef = React.useRef<MediaRecorder | null>(null);
   const audioChunksRef = React.useRef<Blob[]>([]);
+
+  // Load tracked repos when dialog opens
+  React.useEffect(() => {
+    if (open && !reposLoaded) {
+      getTrackedRepos().then((repos) => {
+        setTrackedRepos(repos);
+        setReposLoaded(true);
+      }).catch(() => {
+        setTrackedRepos([]);
+        setReposLoaded(true);
+      });
+    }
+  }, [open, reposLoaded]);
 
   async function startRecording() {
     try {
@@ -112,32 +136,34 @@ export function EntryForm({ entry, trigger }: Props) {
     }
   }
 
-  async function loadGithubActivity() {
+  async function loadActivityForRepo(repoFullName: string) {
     setIsFetchingGit(true);
+    const repoDisplayName = repoFullName.split("/")[1] || repoFullName;
     toast.promise(
       async () => {
-        const activity = await fetchGithubActivity(form.date);
+        const activity = await fetchActivityForRepo(form.date, repoFullName);
         if (activity) {
           if (activity.startsWith("GitHub Integration:")) {
             throw new Error(activity);
           }
           setForm((prev) => ({
             ...prev,
-            rawNotes: prev.rawNotes ? `${prev.rawNotes}\n\n${activity}` : activity
+            rawNotes: prev.rawNotes ? `${prev.rawNotes}\n\n${activity}` : activity,
           }));
-          return "Autofilled from GitHub!";
+          return `Autofilled from ${repoDisplayName}!`;
         } else {
           throw new Error("No activity found for this date.");
         }
       },
       {
-        loading: "Fetching your GitHub commits/PRs...",
+        loading: `Fetching commits from ${repoDisplayName}...`,
         success: (data) => data,
         error: (err) => err instanceof Error ? err.message : "Failed to fetch",
       }
     );
     setIsFetchingGit(false);
   }
+
 
   function set<K extends keyof EntryInput>(key: K, value: EntryInput[K]) {
     setForm((f) => ({ ...f, [key]: value }));
@@ -238,27 +264,64 @@ export function EntryForm({ entry, trigger }: Props) {
                   )}
                 </Button>
 
-                {/* GitHub Fetch Button */}
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  disabled={isFetchingGit}
-                  onClick={loadGithubActivity}
-                  className="h-7 text-[10px] font-semibold px-2 rounded-lg border-muted-foreground/10 hover:border-primary/30 hover:bg-muted transition-all duration-300"
-                >
-                  {isFetchingGit ? (
-                    <>
-                      <Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" />
-                      Fetching...
-                    </>
-                  ) : (
-                    <>
-                      <Github className="w-3 h-3 mr-1 text-foreground" />
-                      Autofill GitHub
-                    </>
-                  )}
-                </Button>
+                {/* GitHub Repo Dropdown Fetch Button */}
+                {trackedRepos.length === 0 ? (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    disabled
+                    title="No repos tracked. Go to Settings → GitHub Integration to set up."
+                    className="h-7 text-[10px] font-semibold px-2 rounded-lg border-muted-foreground/10 opacity-50 cursor-not-allowed"
+                  >
+                    <Github className="w-3 h-3 mr-1" />
+                    Autofill GitHub
+                  </Button>
+                ) : (
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        disabled={isFetchingGit}
+                        className="h-7 text-[10px] font-semibold px-2 rounded-lg border-muted-foreground/10 hover:border-primary/30 hover:bg-muted transition-all duration-300"
+                      >
+                        {isFetchingGit ? (
+                          <>
+                            <Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" />
+                            Fetching...
+                          </>
+                        ) : (
+                          <>
+                            <Github className="w-3 h-3 mr-1 text-foreground" />
+                            Autofill GitHub
+                            <ChevronDown className="w-3 h-3 ml-1 text-muted-foreground" />
+                          </>
+                        )}
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="min-w-[200px]">
+                      <DropdownMenuLabel className="flex items-center gap-1.5 text-xs">
+                        <GitBranch className="w-3 h-3" /> Select a repo to pull from
+                      </DropdownMenuLabel>
+                      <DropdownMenuSeparator />
+                      {trackedRepos.map((repoFullName) => {
+                        const repoName = repoFullName.split("/")[1] || repoFullName;
+                        return (
+                          <DropdownMenuItem
+                            key={repoFullName}
+                            onClick={() => loadActivityForRepo(repoFullName)}
+                            className="text-xs font-mono cursor-pointer"
+                          >
+                            <Github className="w-3 h-3 mr-2 text-muted-foreground" />
+                            {repoName}
+                          </DropdownMenuItem>
+                        );
+                      })}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                )}
               </div>
             </div>
             <Textarea

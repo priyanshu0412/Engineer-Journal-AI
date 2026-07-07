@@ -14,6 +14,7 @@ export interface UserSettings {
   timezone: string;
   githubUsername?: string;
   githubToken?: string;
+  githubSelectedRepos?: string[];
 }
 
 export async function getSettings(): Promise<UserSettings> {
@@ -30,6 +31,7 @@ export async function getSettings(): Promise<UserSettings> {
     timezone: doc?.timezone ?? "Asia/Kolkata",
     githubUsername: doc?.githubUsername ?? "",
     githubToken: doc?.githubToken ?? "",
+    githubSelectedRepos: (doc?.githubSelectedRepos as string[]) ?? [],
   };
 }
 
@@ -52,6 +54,9 @@ export async function updateSettings(
   }
   if (input.githubToken !== undefined) {
     updateObj.githubToken = input.githubToken.trim();
+  }
+  if (input.githubSelectedRepos !== undefined) {
+    updateObj.githubSelectedRepos = input.githubSelectedRepos;
   }
 
   await User.updateOne(

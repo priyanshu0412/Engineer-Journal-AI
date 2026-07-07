@@ -13,6 +13,7 @@ const UserSchema = new Schema(
     timezone: { type: String, default: "Asia/Kolkata" },
     githubUsername: { type: String, default: "" },
     githubToken: { type: String, default: "" },
+    githubSelectedRepos: { type: [String], default: [] },
   },
   { timestamps: true },
 );
